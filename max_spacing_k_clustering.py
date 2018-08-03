@@ -143,22 +143,48 @@ class Graph():
 
 
 # input: filename
-# output: Graph
-def create_graph(filename):
-    G = Graph()
+# output: array of edges sorted by increasing cost, number of nodes
+def sort_edges(filename):
+    edges = []
     with open(filename) as f_handle:
-        f_handle.readline()
+        num_nodes = int(f_handle.readline())
         for line in f_handle:
             edge = line.split()
-            u = int(edge[0])
-            v = int(edge[1])
-            cost = int(edge[2])
-            G.add_e(u, v, cost)
-    return G
+            edges.append([int(edge[0]), int(edge[1]), int(edge[2])])
+    return sorted(edges, key=lambda x: x[2]), num_nodes
 
 
-def max_spacing_k_clustering(G):
+# input: a Graph
+# output: boolean indicating whether graph has cycle
+def has_cycles(G):
     return None
+
+
+# input: file which describes a distance fn, target number of k clusters
+# output: maximum spacing of clustering with target number of k clusters
+def max_spacing_k_clustering(filename, k_clusters):
+
+    # ----------------------- KRUSKAL'S MST ALGORITHM ---------------------------
+    # Sort edges by increasing cost (e.g. [[1,2,1], [1,3,2]])
+    edges, num_nodes = sort_edges(filename)
+    print('sorted edges: ', edges)
+    T = Graph()
+
+    edge_count = 0
+    for edge in edges:
+        T_with_edge = T.add_e(edge[0], edge[1], edge[2])
+        edge_count += 1
+        # if tree has no cycles with this edge, include it. Otherwise don't.
+        if has_cycles(T_with_edge):
+            T.remove_e(edge[0], edge[1])
+            edge_count -= 1
+
+        # optimization: once T has n-1 edges (enough to be spanning tree), terminate
+        if edge_count >= num_nodes - 1:
+            break
+
+    return T
+    # ----------------------- KRUSKAL'S MST ALGORITHM ---------------------------
 
 
 def main():
@@ -168,11 +194,8 @@ def main():
     K = 3 -> 2
     K = 4 -> 1
     '''
-    G = create_graph('max_spacing_k_clustering_ex.txt')
-    print(G)
-
     start = time.time()
-    result = max_spacing_k_clustering(G)
+    result = max_spacing_k_clustering('max_spacing_k_clustering_ex.txt', 2)
     print('result: ', result)
     print('elapsed time: ', time.time() - start)
 
