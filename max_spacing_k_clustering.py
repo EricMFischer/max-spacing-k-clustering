@@ -142,6 +142,55 @@ class Graph():
             cb(v)
 
 
+# Union-Find array data structure
+class Union_Find(object):
+    def __init__(self, n):
+        self._parents = range(1, n + 1)
+        self._cluster_sizes = [1] * n
+        self._num_clusters = n
+
+    def root(self, node):
+        p = node
+        while p != self._parents[p - 1]:
+            p = self._parents[p - 1]
+        return p
+
+    # input: old root, new root, new cluster size
+    # output: number of root updates
+    def _combine(self, old_root, new_root, new_cluster_size):
+        self._num_clusters -= 1
+        for node_i, parent in self._parents:
+            if parent == old_root:
+                self._parents[node_i] = new_root
+            if parent == old_root or parent == new_root:
+                self._cluster_sizes[node_i] = new_cluster_size
+
+    def union(self, u, v):
+        u_root = self.root(u)
+        v_root = self.root(v)
+        u_cluster_size = self._cluster_sizes[u - 1]
+        v_cluster_size = self._cluster_sizes[v - 1]
+        new_cluster_size = u_cluster_size + v_cluster_size
+
+        if u_cluster_size >= v_cluster_size:
+            self._combine(v_root, u_root, new_cluster_size)
+        else:
+            self._combine(u_root, v_root, new_cluster_size)
+
+
+# input: graph T (assumed to be a minimum spanning tree)
+# output: cost of MST
+def calc_cost(T):
+    cost = 0
+    G_keys = T.get_v_keys()
+    for v_k in G_keys:
+        v = T.get_v(v_k)
+        nbr_keys = v.get_nbr_keys()
+        for nbr_k in nbr_keys:
+            cost += v.get_e(nbr_k)
+    return cost // 2
+
+
 # input: filename
 # output: array of edges sorted by increasing cost, number of nodes
 def sort_edges(filename):
@@ -154,37 +203,33 @@ def sort_edges(filename):
     return sorted(edges, key=lambda x: x[2]), num_nodes
 
 
-# input: a Graph
-# output: boolean indicating whether graph has cycle
-def has_cycles(G):
-    return None
-
-
-# input: file which describes a distance fn, target number of k clusters
-# output: maximum spacing of clustering with target number of k clusters
-def max_spacing_k_clustering(filename, k_clusters):
-
-    # ----------------------- KRUSKAL'S MST ALGORITHM ---------------------------
+# input: file which describes a distance fn (edge nodes and cost)
+# output: cost of minimum spanning tree
+def kruskal_minimum_spanning_tree(filename):
     # Sort edges by increasing cost (e.g. [[1,2,1], [1,3,2]])
     edges, num_nodes = sort_edges(filename)
-    print('sorted edges: ', edges)
+    union_find = Union_Find(num_nodes)
     T = Graph()
 
     edge_count = 0
     for edge in edges:
-        T_with_edge = T.add_e(edge[0], edge[1], edge[2])
-        edge_count += 1
-        # if tree has no cycles with this edge, include it. Otherwise don't.
-        if has_cycles(T_with_edge):
-            T.remove_e(edge[0], edge[1])
-            edge_count -= 1
+        # if tree T has no cycles with this edge, add it to T
+        cyclic = union_find.root(edge[0]) == union_find.root(edge[1])
+        if not cyclic:
+            T.add_e(edge[0], edge[1], edge[2])
+            edge_count += 1
 
         # optimization: once T has n-1 edges (enough to be spanning tree), terminate
         if edge_count >= num_nodes - 1:
             break
 
-    return T
-    # ----------------------- KRUSKAL'S MST ALGORITHM ---------------------------
+    return calc_cost(T)
+
+
+# input: file which describes a distance fn, target number of k clusters
+# output: maximum spacing of clustering with target number of k clusters
+def max_spacing_k_clustering(filename, k_clusters):
+    return None
 
 
 def main():
@@ -195,7 +240,7 @@ def main():
     K = 4 -> 1
     '''
     start = time.time()
-    result = max_spacing_k_clustering('max_spacing_k_clustering_ex.txt', 2)
+    result = kruskal_minimum_spanning_tree('minimum_spanning_tree_ex.txt')
     print('result: ', result)
     print('elapsed time: ', time.time() - start)
 
