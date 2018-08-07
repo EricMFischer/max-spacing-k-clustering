@@ -40,7 +40,10 @@ class Vertex():
         return nbr_key in self._nbrs
 
     def get_nbr_keys(self):
-        return list(self._nbrs.keys())
+        return self._nbrs.keys()
+
+    def get_nbr_values(self):
+        return self._nbrs.values()
 
     def remove_nbr(self, nbr_key):
         if nbr_key in self._nbrs:
@@ -177,18 +180,8 @@ class Union_Find(object):
         else:
             self._combine(u_root, v_root, new_cluster_size)
 
-
-# input: graph T (assumed to be a minimum spanning tree)
-# output: cost of MST
-def calc_cost(T):
-    cost = 0
-    G_keys = T.get_v_keys()
-    for v_k in G_keys:
-        v = T.get_v(v_k)
-        nbr_keys = v.get_nbr_keys()
-        for nbr_k in nbr_keys:
-            cost += v.get_e(nbr_k)
-    return cost // 2
+    def get_num_clusters(self):
+        return self._num_clusters
 
 
 # input: filename
@@ -203,40 +196,53 @@ def sort_edges(filename):
     return sorted(edges, key=lambda x: x[2]), num_nodes
 
 
-# input: file which describes a distance fn (edge nodes and cost)
-# output: cost of minimum spanning tree
-def kruskal_minimum_spanning_tree(filename):
-    # Sort edges by increasing cost (e.g. [[1,2,1], [1,3,2]])
+# input: tree T formed when there remain a k_clusters num of k clusters
+# output: max spacing of T
+def calc_max_spacing(T):
+    max_spacing = 0
+    for v in T:
+        max_spacing = max(max(v.get_nbr_values()), max_spacing)
+    return max_spacing
+
+
+# input: file which describes a distance fn (edge nodes and cost), k_clusters
+# (optional argument) which returns T early before it becomes a MST
+# output: (minimum) spanning tree
+def kruskal_minimum_spanning_tree(filename, k_clusters):
+    # sort edges by increasing cost (e.g. [[1,2,1], [1,3,2]])
     edges, num_nodes = sort_edges(filename)
     union_find = Union_Find(num_nodes)
     T = Graph()
 
+    edge_count = 0
     for edge in edges:
         # if tree T has no cycles with this edge, add it to T
         cyclic = union_find.root(edge[0]) == union_find.root(edge[1])
         if not cyclic:
             T.add_e(edge[0], edge[1], edge[2])
             union_find.union(edge[0], edge[1])
-        # optimization: once T has n-1 edges (enough to be spanning tree), terminate
-
-    return calc_cost(T)
+            edge_count += 1
+            # max spacing of k_clustering given by edge that would decrease num of clusters to k-1
+            # therefore, return max spacing in the T formed with k-1 clusters remaining
+            if k_clusters and k_clusters - 1 == union_find.get_num_clusters():
+                break
+            # optimization: once T has n-1 edges (enough to be spanning tree), terminate
+            if edge_count >= num_nodes - 1:
+                break
+    return T
 
 
 # input: file which describes a distance fn, target number of k clusters
-# output: maximum spacing of clustering with target number of k clusters
+# output: max spacing of a k clustering
 def max_spacing_k_clustering(filename, k_clusters):
-    return None
+    T = kruskal_minimum_spanning_tree(filename, k_clusters)
+    return calc_max_spacing(T)
 
 
 def main():
-    '''
-    Expected example results:
-    K = 2 -> 5
-    K = 3 -> 2
-    K = 4 -> 1
-    '''
+    # expected example results: K=2 -> 5, K=3 -> 2, K=4 -> 1
     start = time.time()
-    result = kruskal_minimum_spanning_tree('minimum_spanning_tree_ex.txt')
+    result = max_spacing_k_clustering('max_spacing_k_clustering.txt', 4)
     print('result: ', result)
     print('elapsed time: ', time.time() - start)
 
