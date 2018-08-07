@@ -145,7 +145,7 @@ class Graph():
 # Union-Find array data structure
 class Union_Find(object):
     def __init__(self, n):
-        self._parents = range(1, n + 1)
+        self._parents = list(range(1, n + 1))
         self._cluster_sizes = [1] * n
         self._num_clusters = n
 
@@ -159,7 +159,7 @@ class Union_Find(object):
     # output: number of root updates
     def _combine(self, old_root, new_root, new_cluster_size):
         self._num_clusters -= 1
-        for node_i, parent in self._parents:
+        for node_i, parent in enumerate(self._parents):
             if parent == old_root:
                 self._parents[node_i] = new_root
             if parent == old_root or parent == new_root:
@@ -211,17 +211,13 @@ def kruskal_minimum_spanning_tree(filename):
     union_find = Union_Find(num_nodes)
     T = Graph()
 
-    edge_count = 0
     for edge in edges:
         # if tree T has no cycles with this edge, add it to T
         cyclic = union_find.root(edge[0]) == union_find.root(edge[1])
         if not cyclic:
             T.add_e(edge[0], edge[1], edge[2])
-            edge_count += 1
-
+            union_find.union(edge[0], edge[1])
         # optimization: once T has n-1 edges (enough to be spanning tree), terminate
-        if edge_count >= num_nodes - 1:
-            break
 
     return calc_cost(T)
 
