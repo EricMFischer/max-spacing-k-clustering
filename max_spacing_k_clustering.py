@@ -171,6 +171,9 @@ class Union_Find(object):
     def union(self, u, v):
         u_root = self.root(u)
         v_root = self.root(v)
+        if u_root == v_root:
+            return
+
         u_cluster_size = self._cluster_sizes[u - 1]
         v_cluster_size = self._cluster_sizes[v - 1]
         new_cluster_size = u_cluster_size + v_cluster_size
